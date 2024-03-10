@@ -1,9 +1,10 @@
-FROM python:3.7 as base
+FROM python:3.7 as builder
 WORKDIR /app
 COPY . .
 RUN pip install -r requirements.txt
-FROM base AS test
+FROM builder AS test
 CMD ["pytest"]
-FROM base AS build
+FROM builder AS build
+
 EXPOSE 5000
 CMD ["python", "app.py"]
