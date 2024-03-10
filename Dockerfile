@@ -1,4 +1,4 @@
-FROM python:3.10.0a2-slim-buster as base
+FROM python:3.7 as base
 WORKDIR /app
 COPY . .
 RUN pip install -r requirements.txt
