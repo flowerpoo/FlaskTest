@@ -4,7 +4,7 @@ COPY . .
 RUN pip install -r requirements.txt
 
 FROM builder AS test
-RUN pytest
+CMD ["pytest", "test_app.py"]
 
 FROM builder AS build
 EXPOSE 5000
