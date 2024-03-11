@@ -1,0 +1,75 @@
+pipeline {
+    agent any 
+     environment{
+        SSH_USER='ubuntu'
+        EC2_INSTANCE= '35.174.114.34'
+        AWS_ACCESS_KEY='IAM_Poo'
+        SSH_KEY = credentials('ssh_poo')
+        DOCKERHUB_CREDENTIALS= 'docker_poo'
+        DOCKER_IMAGE='flowerking21/flasktest'
+        Docker='flasktest'
+    }
+
+    stages {
+        stage('Hello') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+        
+        stage("checkout")
+        {
+            steps{
+                echo 'clone the git code' 
+                git branch: 'main', url:'https://github.com/flowerpoo/FlaskTest.git'
+            }
+        }
+        
+       
+        stage('docker test') {
+               steps{
+                   script{
+                       docker.build("flasktest:test")
+                   }
+               }
+        }
+        
+        stage('docker build ') {
+               steps{
+                   script{
+                     img=docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}")
+                   }
+               }
+        }
+        
+        stage('push to docker'){
+            steps{
+                script{
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
+                        //docker.push("${DOCKER_IMAGE}:${env.BUILD_ID}")
+                        docker.image("${env.DOCKER_IMAGE}:${env.BUILD_ID}").push()
+                       //echo ("done")
+                    }
+                }
+            }
+        }
+        
+        
+        stage('deploy') {
+               steps{
+                   script{
+                       sshagent(credentials: ['ssh_poo']) {
+                        sh """   
+                            scp -i ${SSH_KEY} -o StrictHostKeyChecking=no Dockerfile ${SSH_USER}@${EC2_INSTANCE}:~/
+                            scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r  app.py requirements.txt ${SSH_USER}@${EC2_INSTANCE}:~/
+                                
+                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${EC2_INSTANCE} 'sudo docker build -t ${DOCKER} ~/ && sudo docker run -d -p 5000:5000 --restart always ${DOCKER}'
+                        
+                        """
+                    }
+                   }
+               }
+        }
+        
+    }
+}
